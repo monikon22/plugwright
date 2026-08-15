@@ -53,6 +53,8 @@ class PlugwrightCorePlugin : Plugin<Project> {
             }
 
             testsDir.set(extension.testsDir)
+            // Filled in once every environment has been wired; empty until then.
+            runnerPackages.convention(emptyList())
             nodeVersion.set(extension.nodeVersion)
             downloadNode.set(extension.downloadNode)
             nodeInstallDir.set(defaultNodeInstallDir)
@@ -154,6 +156,11 @@ class PlugwrightCorePlugin : Plugin<Project> {
                 if (project.hasProperty("testNames")) testNames.set(project.property("testNames") as String)
             }
 
+            // Merged across environments so the whole matrix is covered by one install.
+            mode.runnerPackages(entry.spec).forEach { ref ->
+                runnerPackageSpecs += if (ref.version != null) "${ref.name}@${ref.version}" else ref.name
+            }
+
             val validation = ValidationContextImpl(envName, project.logger)
             mode.validate(entry.spec, validation)
             validationProblems += validation.errors.map { "[$envName] $it" }
@@ -190,6 +197,8 @@ class PlugwrightCorePlugin : Plugin<Project> {
                 ctx.prepareTaskRef?.let { matrixPrepareTasks += it }
             }
         }
+
+        plugwrightCompileTests.configure { runnerPackages.set(runnerPackageSpecs.toList()) }
 
         if (validationProblems.isNotEmpty()) {
             throw GradleException("plugwright configuration problems:\n" + validationProblems.joinToString("\n") { "  $it" })
