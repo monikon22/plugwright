@@ -4,7 +4,7 @@ import org.gradle.api.provider.Property
 
 /**
  * Settings for the `plugwrightTest` matrix run: every environment with `includeInMatrix = true`,
- * aggregated into one summary. See modes-and-plugins §5, §5.2.
+ * aggregated into one summary.
  */
 abstract class MatrixSpec {
 

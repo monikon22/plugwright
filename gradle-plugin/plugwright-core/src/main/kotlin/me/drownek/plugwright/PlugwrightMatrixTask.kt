@@ -36,7 +36,7 @@ private data class EnvironmentSummary(val total: Int, val passed: Int, val faile
  * `plugwrightTest`: runs every environment with `includeInMatrix = true`, one runner process
  * each, and aggregates the result. Does not `dependsOn` the per-environment `plugwrightTest<Env>`
  * tasks — it launches the same [RunnerLauncher] they use directly, so one environment failing
- * doesn't stop the others from reporting (see modes-and-plugins §5).
+ * doesn't stop the others from reporting.
  */
 abstract class PlugwrightMatrixTask : AbstractNodeTask() {
 
@@ -159,7 +159,7 @@ abstract class PlugwrightMatrixTask : AbstractNodeTask() {
     private fun printSummaryTable(outcomes: List<Outcome>) {
         val nameWidth = outcomes.maxOf { it.env.name.length }
         logger.lifecycle("")
-        logger.lifecycle("Итог по окружениям:")
+        logger.lifecycle("Environment sumarries:")
         for ((env, summary, error) in outcomes) {
             val label = env.name.padEnd(nameWidth)
             val flag = if (env.allowFailure) "  [allowFailure]" else ""
