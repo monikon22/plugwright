@@ -79,6 +79,7 @@ export class Session {
             username: options.username,
             version: options.version,
             auth: options.auth,
+            ...(options.profilesFolder ? { profilesFolder: options.profilesFolder } : {}),
         });
 
         this.bots.push(bot);
