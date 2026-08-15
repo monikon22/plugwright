@@ -19,6 +19,12 @@ object BannerState {
     val printed = AtomicBoolean(false)
 }
 
+/**
+ * Name of the implicit environment used while the build script has no `environments { }`
+ * block: the flat extension properties describe one local server.
+ */
+const val DEFAULT_ENVIRONMENT_NAME = "local"
+
 class PlugwrightPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         val extension = project.extensions.create("plugwright", PlugwrightExtension::class.java, project)
@@ -78,15 +84,30 @@ class PlugwrightPlugin : Plugin<Project> {
             }
         }
 
+        val plugwrightCompileTests = project.tasks.register("plugwrightCompileTests", PlugwrightCompileTestsTask::class.java) {
+            doFirst {
+                if (BannerState.printed.compareAndSet(false, true)) Banner.print(project.logger)
+            }
+
+            testsDir.set(extension.testsDir)
+            nodeVersion.set(extension.nodeVersion)
+            downloadNode.set(extension.downloadNode)
+            nodeInstallDir.set(defaultNodeInstallDir)
+        }
+
         project.tasks.register("plugwrightTest", PlugwrightTestTask::class.java) {
             // Ensure clean runs before test
             dependsOn(plugwrightClean)
+            // npm install + tsc are shared across environments, so they live in their own task
+            dependsOn(plugwrightCompileTests)
 
             doFirst {
                 if (BannerState.printed.compareAndSet(false, true)) Banner.print(project.logger)
             }
 
             testsDir.set(extension.testsDir)
+            environmentName.set(DEFAULT_ENVIRONMENT_NAME)
+            configFile.set(project.layout.buildDirectory.file("tmp/plugwright/$DEFAULT_ENVIRONMENT_NAME.json"))
             minecraftVersion.set(extension.minecraftVersion)
             jvmArgs.set(extension.jvmArgs)
             acceptEula.set(extension.acceptEula)
