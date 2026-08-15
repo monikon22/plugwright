@@ -1,13 +1,15 @@
 import { Bot } from 'mineflayer';
 import { ItemWrapper, GuiWrapper, createPlayerExtensions, Window, LiveGuiHandle } from './wrappers.js';
 import { ServerWrapper } from './server.js';
-import { activeBots, messageBuffer, disconnectBot, createBot } from './bot-utils.js';
+import type { Session } from './session.js';
+import type { BotConnectionOptions } from './environment.js';
 import { poll } from './utils.js';
 import { randomUUID } from 'node:crypto';
 import pc from 'picocolors';
 
 export class PlayerWrapper {
     bot: Bot;
+    readonly session: Session;
 
     get inventory() {
         return this.bot.inventory;
@@ -34,12 +36,13 @@ export class PlayerWrapper {
 
     gui!: (options: { title: string | RegExp; timeout?: number }) => Promise<LiveGuiHandle>;
     private serverWrapper?: ServerWrapper;
-    private _botOptions?: { host: string; port: number; version: string | undefined; auth: 'mojang' | 'microsoft' | 'offline' };
+    private _botOptions?: BotConnectionOptions;
     private _spawnPromise: Promise<void> | null = null;
     private _listenersBot: Bot | null = null;
 
-    constructor(bot: Bot) {
+    constructor(bot: Bot, session: Session) {
         this.bot = bot;
+        this.session = session;
         this._bindExtensions(bot);
     }
 
@@ -120,7 +123,7 @@ export class PlayerWrapper {
         bot.on('message', (jsonMsg: unknown) => {
             const message = String(jsonMsg);
             console.log(pc.dim(`[Bot ${botUsername}] Received message: "${message}"`));
-            messageBuffer.push(message);
+            this.session.messages.push(message);
         });
 
         bot.on('windowOpen', (window: unknown) => {
@@ -151,7 +154,7 @@ export class PlayerWrapper {
     }
 
     getMessageBufferIndex(): number {
-        return messageBuffer.length;
+        return this.session.messages.length;
     }
 
     nextMessage(options: { timeout?: number } = {}): Promise<string> {
@@ -177,7 +180,7 @@ export class PlayerWrapper {
         this.serverWrapper!.execute(`minecraft:op ${this.username}`);
 
         await poll(
-            () => messageBuffer.find(m => m.includes(`Made ${this.username} a server operator`)),
+            () => this.session.messages.find(m => m.includes(`Made ${this.username} a server operator`)),
             { message: `Player ${this.username} was not opped` }
         );
     }
@@ -215,7 +218,7 @@ export class PlayerWrapper {
     }
 
     /** @internal */
-    _setBotOptions(opts: { host: string; port: number; version: string | undefined; auth: 'mojang' | 'microsoft' | 'offline' }): void {
+    _setBotOptions(opts: BotConnectionOptions): void {
         this._botOptions = opts;
     }
 
@@ -227,17 +230,12 @@ export class PlayerWrapper {
         const botUsername = this.username;
         const oldBot = this.bot;
 
-        await disconnectBot(oldBot, botUsername);
+        await this.session.disconnectBot(oldBot, botUsername);
+        this.session.removeBot(oldBot);
 
-        const idx = activeBots.indexOf(oldBot);
-        if (idx !== -1) activeBots.splice(idx, 1);
-
-        const newBot = createBot({
-            host: this._botOptions.host,
-            port: this._botOptions.port,
+        const newBot = this.session.createBot({
+            ...this._botOptions,
             username: botUsername,
-            version: this._botOptions.version,
-            auth: this._botOptions.auth,
         });
 
         this.bot = newBot;
@@ -249,8 +247,7 @@ export class PlayerWrapper {
         try {
             await this.join(options);
         } catch (err) {
-            const idx = activeBots.indexOf(this.bot);
-            if (idx !== -1) activeBots.splice(idx, 1);
+            this.session.removeBot(this.bot);
             throw err;
         }
     }
@@ -283,7 +280,7 @@ export class PlayerWrapper {
         this.serverWrapper!.execute(`minecraft:say ${syncId}`);
 
         await poll(
-            () => messageBuffer.find(m => m.includes(syncId)),
+            () => this.session.messages.find(m => m.includes(syncId)),
             { message: `Server command sync timed out for: ${cmd}` }
         );
     }

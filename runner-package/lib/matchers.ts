@@ -2,7 +2,6 @@ import { Matchers } from './expect.js';
 import { PlayerWrapper } from './player.js';
 import { ServerWrapper } from './server.js';
 import { GuiItemLocator } from './wrappers.js';
-import { messageBuffer, serverConsoleBuffer } from './bot-utils.js';
 import { sleep } from './utils.js';
 
 export class RunnerMatchers<T = unknown> extends Matchers<T> {
@@ -70,8 +69,9 @@ export class RunnerMatchers<T = unknown> extends Matchers<T> {
             return strict ? msg === expectedMessage : msg.includes(expectedMessage);
         };
 
-        const buffer = this.actual instanceof PlayerWrapper ? messageBuffer : serverConsoleBuffer;
-        const view = (): string[] => since !== undefined ? buffer.slice(since) : buffer;
+        const session = (this.actual as PlayerWrapper | ServerWrapper).session;
+        const buffer = this.actual instanceof PlayerWrapper ? session.messages : session.consoleLog;
+        const view = (): string[] => buffer.slice(since);
 
         await this.pollAssertion(
             () => view().some(isMatch),
