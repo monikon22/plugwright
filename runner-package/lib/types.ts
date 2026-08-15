@@ -7,7 +7,7 @@ export interface TestContext {
     createPlayer: (options?: { username?: string }) => Promise<PlayerWrapper>;
     signal: AbortSignal;
     /** Registers a LIFO finalizer that always runs after the test body, before afterEach.
-     *  Errors are logged but never override the test result. See modes-and-plugins §7.1. */
+     *  Errors are logged but never override the test result. */
     cleanup: (fn: () => void | Promise<void>) => void;
 }
 

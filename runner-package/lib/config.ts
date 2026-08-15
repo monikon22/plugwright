@@ -66,8 +66,8 @@ export interface RunnerConfig {
     tests: TestsConfig;
     reports?: ReportsConfig | null;
     plugins?: PluginConfig[] | null;
-    /** Crash-recovery journal path for `Session.journal` (modes-and-plugins §7.3). Omitted
-     *  disables on-disk persistence — journal entries only survive within the process. */
+    /** Crash-recovery journal path for `Session.journal`. Omitted disables on-disk
+     *  persistence — journal entries only survive within the process. */
     journal?: string | null;
 }
 

@@ -134,7 +134,7 @@ export function writeJsonReport(path: string, environmentName: string, testResul
 }
 
 /** Writes a JUnit XML report: `testsuite name="plugwright.<env>"`, one `testcase` per test,
- *  spec file as `classname`, full `describe`-chain name as `name`. See modes-and-plugins §5.3. */
+ *  spec file as `classname`, full `describe`-chain name as `name`. */
 export function writeJUnitReport(path: string, environmentName: string, testResults: TestResult[]): void {
     const skipped = testResults.filter(r => r.skipped).length;
     const failed = testResults.filter(r => !r.skipped && !r.passed).length;

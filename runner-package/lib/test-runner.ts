@@ -23,10 +23,10 @@ export interface RunTestCaseParams {
 
 /**
  * Runs one test case end to end: creates the primary bot (firing `onPlayerCreate`),
- * builds `TestContext`, and sequences hooks in the order modes-and-plugins §6.6 specifies —
- * plugin beforeEach → spec beforeEach → body → cleanup finalizers → spec afterEach →
- * plugin afterEach. Finalizer errors are logged but never flip the test result (§7.1); spec
- * afterEach errors do, matching the runner's pre-plugin-host behavior.
+ * builds `TestContext`, and sequences hooks in order — plugin beforeEach → spec beforeEach
+ * → body → cleanup finalizers → spec afterEach → plugin afterEach. Finalizer errors are
+ * logged but never flip the test result; spec afterEach errors do, matching the runner's
+ * pre-plugin-host behavior.
  */
 export async function runTestCase(params: RunTestCaseParams): Promise<TestResult> {
     const { file, testCase, session, plugins, connOpts, timeoutMs, pluginName = null } = params;
@@ -88,8 +88,8 @@ export async function runTestCase(params: RunTestCaseParams): Promise<TestResult
             } catch (e) {
                 testError = e;
             } finally {
-                // Finalizers first, then afterEach — modes-and-plugins §6.6. Their errors are
-                // logged only: "надёжнее afterEach", not a second chance to fail the test.
+                // Finalizers run before afterEach. Their errors are logged only — a
+                // cleanup hiccup isn't a second chance to fail the test.
                 for (const finalizer of [...finalizers].reverse()) {
                     try {
                         await finalizer();

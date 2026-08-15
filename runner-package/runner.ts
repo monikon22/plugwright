@@ -117,7 +117,7 @@ export async function runTestSession(config: RunnerConfig = loadRunnerConfig()):
 
         /** Imports one compiled spec file (a fresh `testRegistry`) and runs everything it
          *  registered, appending results to `testResults`. Shared by user specs and every
-         *  plugin-inherited test file — see modes-and-plugins §6.5. */
+         *  plugin-inherited test file. */
         async function runFile(file: string, pluginName: string | null): Promise<void> {
             resetRegistry();
             await import(pathToFileURL(file).href);
@@ -136,7 +136,7 @@ export async function runTestSession(config: RunnerConfig = loadRunnerConfig()):
         }
 
         // Preflight: plugin auth/setup tests, run before anything else. A failure aborts the
-        // whole session — see modes-and-plugins §6.5/§6.6.
+        // whole session.
         for (const { file, pluginName } of plugins.testFiles('preflight')) {
             console.log(`\n${pc.blue(pc.bold(`Running preflight tests from: ${file} ${pc.dim(`(plugin ${pluginName})`)}`))}`);
             const before = testResults.length;

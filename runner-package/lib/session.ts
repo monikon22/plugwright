@@ -59,7 +59,7 @@ export class Session {
 
     /** Set once by the runner after loading plugins. Fired by `PlayerWrapper.join()` on
      *  every connection (initial join and every `rejoin()`), not called directly by
-     *  `Session` itself — see modes-and-plugins §6.5. */
+     *  `Session` itself. */
     onPlayerCreate: ((player: PlayerWrapper, ctx: { account: Account; env: Environment }) => Promise<void> | void) | null = null;
 
     constructor(env: Environment, journalPath: string | null = null) {

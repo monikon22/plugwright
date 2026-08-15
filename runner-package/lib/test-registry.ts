@@ -9,7 +9,7 @@ type TestFn = (context: TestContext) => Promise<void>;
  * `requires` checks capability flags on `env.capabilities` (e.g. `'console'`, `'op'`) —
  * a value of `false` or `'none'` fails the check. `environments` checks the running
  * environment's name directly, for cases that aren't about capability but about the
- * content of a specific stand. See modes-and-plugins §5.4.
+ * content of a specific stand.
  */
 export interface TestOptions {
     requires?: string[];
@@ -39,8 +39,7 @@ export const scopeStack: DescribeScope[] = [{ label: '', beforeHooks: [], afterH
 
 /** Discards whatever a previously-imported spec file registered, ready for the next one.
  *  `testRegistry`/`scopeStack` stay module-level with this per-file reset — correct only
- *  as long as one process runs one environment and files run sequentially. See
- *  modes-and-plugins §6.1. */
+ *  as long as one process runs one environment and files run sequentially. */
 export function resetRegistry(): void {
     testRegistry.length = 0;
     scopeStack.length = 0;

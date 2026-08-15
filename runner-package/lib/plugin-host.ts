@@ -18,7 +18,7 @@ interface LoadedPlugin {
 /**
  * Owns every loaded `PlugwrightPlugin`: hooks fired around each test, matchers merged into
  * `RunnerMatchers`, fixtures merged into `TestContext`, and inherited test files. One
- * instance per session — see modes-and-plugins §6.5.
+ * instance per session.
  */
 export class PluginHost {
     private readonly plugins: LoadedPlugin[] = [];
@@ -54,7 +54,7 @@ export class PluginHost {
 
     /** Merges declared matchers into the shared `RunnerMatchers` prototype. Must run before
      *  the first spec file is imported — `expect(x).foo()` looks the matcher up on the
-     *  prototype at call time, not at registration time. See modes-and-plugins §6.5. */
+     *  prototype at call time, not at registration time. */
     registerMatchers(): void {
         for (const { plugin } of this.plugins) {
             for (const [matcherName, fn] of Object.entries(plugin.matchers ?? {})) {
@@ -103,7 +103,7 @@ export class PluginHost {
 
     /** Inherited test files for the given mode, across every plugin with `inheritTests`
      *  enabled. `findSpecFiles` never sees these — it skips `node_modules` — so this is the
-     *  only way a plugin's own tests run. See modes-and-plugins §6.5. */
+     *  only way a plugin's own tests run. */
     testFiles(mode: PluginTestRef['mode']): { file: string; pluginName: string }[] {
         return this.plugins
             .filter(p => p.inheritTests)

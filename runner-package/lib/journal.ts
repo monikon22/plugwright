@@ -5,7 +5,7 @@ import { dirname } from 'path';
  * A crash-survivable record of one cleanup obligation. Typed and interpreted by a plugin's
  * `cleanup({ scope: 'manual' })` handler — never a raw command string. A journal that
  * replayed arbitrary strings would be a way to run arbitrary commands against a live server
- * the next time someone runs `plugwrightClean<Env>`. See modes-and-plugins §7.3.
+ * the next time someone runs `plugwrightClean<Env>`.
  */
 export interface JournalEntry {
     kind: string;
@@ -20,8 +20,7 @@ export interface JournalEntry {
  *
  * A plain JS closure can't be serialized to a file, so only entries explicitly journaled as
  * a typed record (not a function) survive a crash — this is a lower-level, opt-in companion
- * to `TestContext.cleanup()`, not a transparent upgrade of it. See modes-and-plugins §7.1
- * vs §7.3.
+ * to `TestContext.cleanup()`, not a transparent upgrade of it.
  */
 export class CleanupJournal {
     private readonly path: string | null;
