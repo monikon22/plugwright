@@ -3,6 +3,7 @@ import { ItemWrapper, GuiWrapper, createPlayerExtensions, Window, LiveGuiHandle 
 import { ServerWrapper } from './server.js';
 import type { Session } from './session.js';
 import type { BotConnectionOptions } from './environment.js';
+import type { Account } from './account.js';
 import { poll } from './utils.js';
 import { randomUUID } from 'node:crypto';
 import pc from 'picocolors';
@@ -39,6 +40,7 @@ export class PlayerWrapper {
     private _botOptions?: BotConnectionOptions;
     private _spawnPromise: Promise<void> | null = null;
     private _listenersBot: Bot | null = null;
+    private account?: Account;
 
     constructor(bot: Bot, session: Session) {
         this.bot = bot;
@@ -111,6 +113,15 @@ export class PlayerWrapper {
         this._spawnPromise = null;
 
         this._registerPersistentListeners();
+
+        if (this.account) {
+            await this.session.onPlayerCreate?.(this, { account: this.account, env: this.session.env });
+        }
+    }
+
+    /** @internal */
+    _setAccount(account: Account): void {
+        this.account = account;
     }
 
     private _registerPersistentListeners(): void {
