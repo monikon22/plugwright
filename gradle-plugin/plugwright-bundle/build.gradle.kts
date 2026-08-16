@@ -15,13 +15,21 @@ dependencies {
     implementation(gradleApi())
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("org.yaml:snakeyaml:2.0")
-    implementation(project(":plugwright-core"))
-    implementation(project(":plugwright-local"))
-    implementation(project(":plugwright-external"))
 
-    // Compile-time only: its classes reach the runtime classpath through this module's
-    // merged jar below.
+    // Compile-time only, all four: none of them is published under its own coordinates, and
+    // their classes reach the runtime classpath through this module's merged jar below.
+    //
+    // As `implementation` they would instead be written into the published POM as runtime
+    // dependencies on io.github.drownek:plugwright-core, -local and -external — coordinates
+    // that exist in no repository, so every consumer resolving this plugin from a maven
+    // repository failed with "Could not find io.github.drownek:plugwright-core".
+    //
+    // gson and snakeyaml above stay `implementation` deliberately: those are real artifacts
+    // that are not merged into the jar, so the POM does have to ask for them.
     compileOnly(project(":plugwright-api"))
+    compileOnly(project(":plugwright-core"))
+    compileOnly(project(":plugwright-local"))
+    compileOnly(project(":plugwright-external"))
 }
 
 // This is the module published under the plugin id, so its jar must carry the api, core and
