@@ -95,12 +95,24 @@ async function main() {
         );
     }
 
-    // update the lockfile in the example plugin
-    console.log("\nUpdating lockfile in example_plugin...");
-    execSync(
-        `npm install --package-lock-only`,
-        { cwd: "example_plugin/src/test/e2e", stdio: "inherit" }
-    );
+    // Refresh every lockfile that records the runner's version rather than its own.
+    //
+    // The plugin packages depend on the runner through `file:../runner-package`, and npm
+    // copies the linked package's version into their lockfiles. `npm version` does not
+    // rewrite that copy — only an install does — so without this the plugin packages ship a
+    // lockfile still naming the previous runner version.
+    const LOCKFILE_ONLY = [
+        ...NPM_PACKAGES.filter((pkg) => pkg !== "runner-package"),
+        "example_plugin/src/test/e2e",
+    ];
+
+    for (const dir of LOCKFILE_ONLY) {
+        console.log(`\nUpdating lockfile in ${dir}...`);
+        execSync(
+            `npm install --package-lock-only`,
+            { cwd: dir, stdio: "inherit" }
+        );
+    }
 
     // bump version references in source files (docs only for stable releases)
     const changedSourceFiles = [
