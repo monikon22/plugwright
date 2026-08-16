@@ -50,13 +50,6 @@ function bumpVersionFiles(newVersion, isPrerelease) {
                 `id("io.github.drownek.plugwright") version "${newVersion}"`
             );
         }
-
-        // Matches any version after the package name, e.g., "@drownek/plugwright": "^1.x.x"
-        replaceRegexInFile(
-            "gradle-plugin/plugwright-core/src/main/kotlin/me/drownek/plugwright/PlugwrightPlugin.kt",
-            /"@drownek\/plugwright": "\^[^"]+"/g,
-            `"@drownek/plugwright": "^${newVersion}"`
-        );
     }
 
     replaceRegexInFile(
@@ -109,7 +102,7 @@ async function main() {
         { cwd: "example_plugin/src/test/e2e", stdio: "inherit" }
     );
 
-    // bump version references in source files (docs and templates only for stable releases)
+    // bump version references in source files (docs only for stable releases)
     const changedSourceFiles = [
         "example_plugin/build.gradle.kts",
     ];
@@ -118,7 +111,6 @@ async function main() {
         changedSourceFiles.push(
             "README.md",
             "docs/quickstart.mdx",
-            "gradle-plugin/plugwright-core/src/main/kotlin/me/drownek/plugwright/PlugwrightPlugin.kt",
         );
     }
 
