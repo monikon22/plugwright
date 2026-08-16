@@ -1,6 +1,7 @@
 package me.drownek.plugwright
 
 import me.drownek.plugwright.api.LegacyEnvironmentProperties
+import me.drownek.plugwright.api.NpmSpec
 import me.drownek.plugwright.api.PlugwrightMode
 import me.drownek.plugwright.api.RunDirFile
 import org.gradle.api.Project
@@ -64,6 +65,21 @@ abstract class PlugwrightExtension(project: Project) : LegacyEnvironmentProperti
     /** Configures reuse: `reuse { enabled.set(true); maxPlayers.set(4) }`. */
     fun reuse(action: ReuseSpec.() -> Unit) {
         reuse.action()
+    }
+
+    /** Registries the workspace installs from, and the credentials for them. See [npm]. */
+    val npm: NpmSpec = NpmSpec()
+
+    /**
+     * Configures npm itself: `npm { registry("https://nexus.corp/repository/npm-group/") }`.
+     *
+     * The block covers the whole workspace rather than one environment — there is one
+     * `node_modules` and one install behind the entire matrix. It is written to a `.npmrc`
+     * next to `package.json` before each install; without a block, no file is written and
+     * npm keeps using whatever the machine already configures.
+     */
+    fun npm(action: NpmSpec.() -> Unit) {
+        npm.action()
     }
 
     // ---- Deprecated flat properties --------------------------------------------------
