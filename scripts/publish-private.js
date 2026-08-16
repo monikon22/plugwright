@@ -32,6 +32,24 @@ const PACKAGES = [
 
 const DEFAULT_REGISTRY = "https://repo.holyworld.me/repository/npm-public/";
 
+// How to run npm as a child process.
+//
+// Windows npm is a `.cmd` shim, and Node refuses to spawn one without a shell — a shell that
+// would then reinterpret what it is handed. When npm runs this script it points
+// `npm_execpath` at its own entry point, so the shim can be stepped over entirely; the shell
+// is only the fallback for a run straight through node.
+function npmInvocation() {
+    const execpath = process.env.npm_execpath;
+    if (execpath && execpath.endsWith(".js")) {
+        return { command: process.execPath, prefix: [execpath], shell: false };
+    }
+    return {
+        command: process.platform === "win32" ? "npm.cmd" : "npm",
+        prefix: [],
+        shell: process.platform === "win32",
+    };
+}
+
 function main() {
     const registry = process.env.PLUGWRIGHT_NPM_REGISTRY || DEFAULT_REGISTRY;
     const user = process.env.PLUGWRIGHT_NPM_USER || process.env.NEXUS_USERNAME;
@@ -65,14 +83,22 @@ function main() {
     );
     fs.writeFileSync(configFile, npmrc, { mode: 0o600 });
 
+    const npm = npmInvocation();
+
     try {
         for (const pkg of PACKAGES) {
             const name = JSON.parse(fs.readFileSync(path.join(pkg, "package.json"), "utf8")).name;
             console.log(`\n=== ${name}@${version}`);
             execFileSync(
-                process.platform === "win32" ? "npm.cmd" : "npm",
-                ["publish", "--userconfig", configFile, "--registry", registry, "--tag", tag],
-                { cwd: pkg, stdio: "inherit" }
+                npm.command,
+                [
+                    ...npm.prefix,
+                    "publish",
+                    "--userconfig", configFile,
+                    "--registry", registry,
+                    "--tag", tag,
+                ],
+                { cwd: pkg, stdio: "inherit", shell: npm.shell }
             );
         }
     } finally {
