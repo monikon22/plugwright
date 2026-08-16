@@ -52,3 +52,38 @@ gradlePlugin {
         }
     }
 }
+
+// An organisation that cannot reach the Gradle Plugin Portal needs the plugin somewhere it
+// can reach, so the plugin is publishable to an arbitrary maven repository as well.
+//
+// Nothing about that repository is written down here: a URL in this file would tie an
+// otherwise public build to one company's infrastructure, and a password in it would be a
+// password in version control. All three come from properties or the environment, and the
+// repository only exists when the URL does — a build without them publishes exactly where it
+// did before.
+val publishUrl = providers.gradleProperty("plugwright.publish.url")
+    .orElse(providers.environmentVariable("PLUGWRIGHT_PUBLISH_URL"))
+val publishUser = providers.gradleProperty("plugwright.publish.user")
+    .orElse(providers.environmentVariable("PLUGWRIGHT_PUBLISH_USER"))
+val publishPassword = providers.gradleProperty("plugwright.publish.password")
+    .orElse(providers.environmentVariable("PLUGWRIGHT_PUBLISH_PASSWORD"))
+
+publishing {
+    repositories {
+        if (publishUrl.isPresent) {
+            maven {
+                name = "plugwright"
+                url = uri(publishUrl.get())
+
+                // A repository that lets anyone write is its own kind of problem, but it is
+                // not this build's to solve: an anonymous deploy is still a valid one.
+                if (publishUser.isPresent && publishPassword.isPresent) {
+                    credentials {
+                        username = publishUser.get()
+                        password = publishPassword.get()
+                    }
+                }
+            }
+        }
+    }
+}
