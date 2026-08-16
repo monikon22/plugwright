@@ -1,6 +1,6 @@
 {
   "name": "@plugwright/console-rcon",
-  "version": "2.1.3",
+  "version": "2.1.4",
   "description": "RCON server console for plugwright's \"external\" mode",
   "type": "module",
   "main": "dist/index.js",

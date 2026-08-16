@@ -6,7 +6,7 @@ plugins {
     `java-library`
     id("de.eldoria.plugin-yml.bukkit") version "0.8.0"
     id("com.gradleup.shadow") version "9.0.0"
-    id("io.github.drownek.plugwright") version "2.1.3"
+    id("io.github.drownek.plugwright") version "2.1.4"
 }
 
 // Password every bot on the local server registers with. It guards a server that lives for
