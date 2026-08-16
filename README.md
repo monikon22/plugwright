@@ -51,7 +51,7 @@ Before you begin, you need:
 
 ```kotlin
 plugins {
-    id("io.github.drownek.plugwright") version "2.1.1"
+    id("io.github.drownek.plugwright") version "2.1.3"
 }
 
 plugwright {

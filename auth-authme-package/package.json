@@ -1,6 +1,6 @@
 {
   "name": "@plugwright/auth-authme",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "description": "Reference plugwright authentication plugin for an AuthMe-style login/register flow",
   "type": "module",
   "main": "dist/index.js",
