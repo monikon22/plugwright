@@ -58,6 +58,14 @@ abstract class PlugwrightExtension(project: Project) : LegacyEnvironmentProperti
         matrix.action()
     }
 
+    /** Settings for reusing a connected bot across test boundaries. See [reuse]. */
+    val reuse: ReuseSpec = project.objects.newInstance(ReuseSpec::class.java)
+
+    /** Configures reuse: `reuse { enabled.set(true); maxPlayers.set(4) }`. */
+    fun reuse(action: ReuseSpec.() -> Unit) {
+        reuse.action()
+    }
+
     // ---- Deprecated flat properties --------------------------------------------------
     // Pre-3.0 shape: describes a single implicit "local" environment. Still read whenever
     // the build script has no environments { } block — see PlugwrightMode.applyLegacyDefaults.

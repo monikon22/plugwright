@@ -1,6 +1,7 @@
 import mineflayer, { Bot } from 'mineflayer';
 import pc from 'picocolors';
 import { CleanupJournal } from './journal.js';
+import { PlayerRegistry } from './player-registry.js';
 import type { Environment, BotConnectionOptions } from './environment.js';
 import type { ServerConsole } from './console.js';
 import type { PlayerWrapper } from './player.js';
@@ -56,15 +57,19 @@ export class Session {
     readonly messages = new MessageBuffer();
     readonly consoleLog = new MessageBuffer();
     readonly journal: CleanupJournal;
+    /** Players that survive a test boundary instead of disconnecting in `finally`. Always
+     *  present; unused unless a test actually asks for reuse (`tests.reuse.enabled`). */
+    readonly players: PlayerRegistry;
 
     /** Set once by the runner after loading plugins. Fired by `PlayerWrapper.join()` on
      *  every connection (initial join and every `rejoin()`), not called directly by
      *  `Session` itself. */
     onPlayerCreate: ((player: PlayerWrapper, ctx: { account: Account; env: Environment }) => Promise<void> | void) | null = null;
 
-    constructor(env: Environment, journalPath: string | null = null) {
+    constructor(env: Environment, journalPath: string | null = null, reuseMaxPlayers: number = 4) {
         this.env = env;
         this.journal = new CleanupJournal(journalPath);
+        this.players = new PlayerRegistry(this, reuseMaxPlayers);
     }
 
     /** Pulls the console channel from the environment. Called once `env.setup()` has produced one. */
@@ -126,8 +131,14 @@ export class Session {
         });
     }
 
-    async disconnectAllBots(): Promise<void> {
-        await Promise.all(this.bots.map(b => {
+    /** Disconnects every bot except those in `keep` (registry-owned bots a test released
+     *  rather than dropped, typically). Called with no argument, this is a full teardown —
+     *  the shape every caller before player reuse existed relied on. */
+    async disconnectAllBots(keep: Bot[] = []): Promise<void> {
+        const keepSet = new Set(keep);
+        const toDisconnect = this.bots.filter(b => !keepSet.has(b));
+
+        await Promise.all(toDisconnect.map(b => {
             const isAlreadyEnded = !!(b as any)._client?.ended;
             if (isAlreadyEnded) {
                 return Promise.resolve();
@@ -153,7 +164,9 @@ export class Session {
             });
         }));
 
+        const remaining = this.bots.filter(b => keepSet.has(b));
         this.bots.length = 0;
+        this.bots.push(...remaining);
     }
 
     /** Feeds raw environment output (e.g. Minecraft server stdout/stderr) into the console log buffer. */
