@@ -46,28 +46,49 @@ export interface TestCase {
 export const testRegistry: TestCase[] = [];
 export const scopeStack: DescribeScope[] = [{ label: '', beforeHooks: [], afterHooks: [] }];
 
+/** A reuseTest's body, keyed by the reuse `key` ("pool") it initializes. Carries the same
+ *  `describe`-scoped hooks and `requires`/`environments` filters a regular `TestCase` does —
+ *  a reuseTest is a real test in every way but how it gets triggered. */
+export interface ReuseTestCase {
+    pool: string;
+    name: string;
+    fn: TestFn;
+    beforeHooks: Hook[];
+    afterHooks: Hook[];
+    requires: string[];
+    environments: string[] | null;
+}
+
+/** One reuseTest per pool, kept for the whole run rather than reset per spec file —
+ *  `PlayerRegistry` entries live for the whole run too, so a pool declared in one file must
+ *  still be found when a later file is the first to actually create that entry. */
+export const reuseTestRegistry = new Map<string, ReuseTestCase>();
+
 /** Discards whatever a previously-imported spec file registered, ready for the next one.
  *  `testRegistry`/`scopeStack` stay module-level with this per-file reset — correct only
- *  as long as one process runs one environment and files run sequentially. */
+ *  as long as one process runs one environment and files run sequentially. `reuseTestRegistry`
+ *  is deliberately NOT cleared here — see its own comment. */
 export function resetRegistry(): void {
     testRegistry.length = 0;
     scopeStack.length = 0;
     scopeStack.push({ label: '', beforeHooks: [], afterHooks: [] });
 }
 
-function registerTest(name: string, options: TestOptions, fn: TestFn): void {
+/** Everything a registered test needs from the current `describe` scope, shared by `test`/
+ *  `opTest` (pushed into `testRegistry`) and `reuseTest` (kept in `reuseTestRegistry` instead). */
+function scopedEntry(name: string, options: TestOptions | Omit<TestOptions, 'reuse'>) {
     const labels = scopeStack.map(s => s.label).filter(l => l);
-    const fullName = [...labels, name].join(' > ');
-
-    testRegistry.push({
-        name: fullName,
-        fn,
+    return {
+        name: [...labels, name].join(' > '),
         beforeHooks: scopeStack.flatMap(s => s.beforeHooks),
         afterHooks: [...scopeStack].reverse().flatMap(s => s.afterHooks),
         requires: options.requires ?? [],
         environments: options.environments ?? null,
-        reuse: options.reuse,
-    });
+    };
+}
+
+function registerTest(name: string, options: TestOptions, fn: TestFn): void {
+    testRegistry.push({ ...scopedEntry(name, options), fn, reuse: options.reuse });
 }
 
 export function test(name: string, fn: TestFn): void;
@@ -98,6 +119,36 @@ export function opTest(name: string, fnOrOptions: TestFn | TestOptions, maybeFn?
         if (!context.player.abilities.has('op')) await context.player.makeOp();
         await fn(context);
     });
+}
+
+/**
+ * Registers a one-time initializer for a reuse pool. `pool` is the same string a test passes
+ * as `reuse: 'poolName'` (or `reuse: { key: 'poolName' }`) — `reuseTest` runs `fn` against that
+ * pool's player right when `PlayerRegistry` (re)creates its entry: the very first time any test
+ * asks for `poolName`, or later if that entry was dropped (rejoin failed, abilities stopped
+ * matching) and needs to be built again. It does NOT run on an ordinary checkout of an
+ * already-live entry — that's every other call, which is the common case.
+ *
+ * Takes the same scope as `test`/`opTest`: `describe` nesting names it and contributes its
+ * `beforeEach`/`afterEach` hooks, `requires`/`environments` skip it the same way (reported
+ * `skipped`, not run — same as a regular test would be), and plugin `beforeEach`/`afterEach`
+ * and fixtures wrap it too. `reuse` isn't accepted — a reuseTest initializes a pool, it doesn't
+ * resolve into one itself.
+ *
+ * Runs as its own reported test, right before whichever test triggered the (re)creation. If
+ * `fn` throws, that test fails as a dependency failure and the entry is discarded, so the next
+ * attempt runs `reuseTest` again instead of handing out a half-initialized player.
+ */
+export function reuseTest(pool: string, fn: TestFn): void;
+export function reuseTest(pool: string, options: Omit<TestOptions, 'reuse'>, fn: TestFn): void;
+export function reuseTest(pool: string, fnOrOptions: TestFn | Omit<TestOptions, 'reuse'>, maybeFn?: TestFn): void {
+    const options = typeof fnOrOptions === 'function' ? {} : fnOrOptions;
+    const fn = typeof fnOrOptions === 'function' ? fnOrOptions : maybeFn!;
+
+    if (reuseTestRegistry.has(pool)) {
+        throw new Error(`reuseTest: pool "${pool}" is already registered (reuseTest can only be declared once per pool)`);
+    }
+    reuseTestRegistry.set(pool, { pool, ...scopedEntry(`reuse:${pool}`, options), fn });
 }
 
 export function describe(label: string, fn: () => void): void {
