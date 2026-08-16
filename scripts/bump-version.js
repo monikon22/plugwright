@@ -4,6 +4,15 @@ const { execSync } = require("child_process");
 const fs = require("fs");
 const readline = require("readline");
 
+// Every npm package published out of this repo. They move as one version: a plugin package
+// and the runner it is written against are only recognisable as a matching pair if their
+// version numbers say so, and the plugin packages are useless on their own anyway.
+const NPM_PACKAGES = [
+    "runner-package",
+    "auth-authme-package",
+    "console-rcon-package",
+];
+
 function prompt(question) {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     return new Promise((resolve) => rl.question(question, (ans) => { rl.close(); resolve(ans.trim()); }));
@@ -84,11 +93,14 @@ async function main() {
     // update version.txt
     fs.writeFileSync("version.txt", newVersion + "\n");
 
-    // update runner-package/package.json
-    execSync(
-        `npm version ${newVersion} --no-git-tag-version --allow-same-version`,
-        { cwd: "runner-package", stdio: "inherit" }
-    );
+    // update each published package's package.json and its lockfile's own version field
+    for (const pkg of NPM_PACKAGES) {
+        console.log(`\nBumping ${pkg}...`);
+        execSync(
+            `npm version ${newVersion} --no-git-tag-version --allow-same-version`,
+            { cwd: pkg, stdio: "inherit" }
+        );
+    }
 
     // update the lockfile in the example plugin
     console.log("\nUpdating lockfile in example_plugin...");
@@ -113,8 +125,7 @@ async function main() {
     // commit version files (+ source files if updated)
     const filesToCommit = [
         "version.txt",
-        "runner-package/package.json",
-        "runner-package/package-lock.json",
+        ...NPM_PACKAGES.flatMap((pkg) => [`${pkg}/package.json`, `${pkg}/package-lock.json`]),
         "example_plugin/src/test/e2e/package-lock.json",
         ...changedSourceFiles,
     ].join(" ");
